@@ -112,6 +112,7 @@
         );
 
         var resolutionUniformLocation = gl.getUniformLocation(program, "u_resolution");
+        var colorLocation = gl.getUniformLocation(program, "u_color");
 
         webglUtils.resizeCanvasToDisplaySize(gl.canvas);
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -125,11 +126,18 @@
         //pass canvas resolution
         gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
 
-        //drawi
-        var primitiveType = gl.TRIANGLES;
-        var offset = 0;
-        var count = 6;
-        gl.drawArrays(primitiveType, offset, count);
+        for (var ii = 0; ii < 50; ++ii) {
+            setRectangle(
+                gl, randomInt(500), randomInt(500), randomInt(500), randomInt(500));
+            
+            gl.uniform4f(colorLocation, Math.random(), Math.random(), Math.random(), 1);
+
+            //drawi
+            var primitiveType = gl.TRIANGLES;
+            var offset = 0;
+            var count = 6;
+            gl.drawArrays(primitiveType, offset, count);
+        }
     }
 
     function randomInt(range) {
@@ -149,7 +157,7 @@
             x2, y2,
         ]), gl.STATIC_DRAW);
     }
-    
+
     main();
 </script>
 </html>
