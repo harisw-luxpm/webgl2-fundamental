@@ -12,6 +12,7 @@
 <script src="https://webgl2fundamentals.org/webgl/resources/twgl-full.min.js"></script>
 <script src="https://webgl2fundamentals.org/webgl/resources/m4.js"></script>
 <script src="https://webgl2fundamentals.org/webgl/resources/flattened-primitives.js"></script>
+<script src="https://webgl2fundamentals.org/webgl/resources/chroma.min.js"></script>
 <script type="text/javascript">
 
     var vertexShaderSource = `#version 300 es
@@ -88,26 +89,86 @@
         function degToRad(d) {
             return d* Math.PI / 180;
         }
-
+        function rand(min, max) {
+            if(max === undefined) {
+                max = min;
+                min = 0;
+            }
+            return Math.random() * (max - min) + min;
+        }
+        function emod(x, n) {
+            return x >= 0 ? (x % n) : ((n - (-x % n)) %n);
+        }
         var fieldOfViewRadians = degToRad(60);
 
-        //uniforms for each obj
-        var sphereUniforms = {
-            u_colorMult: [0.5, 1, 0.5, 1],
-            u_matrix: m4.identity()
-        };
-        var cubeUniforms = {
-            u_colorMult: [1, 0.5, 0.5, 1],
-            u_matrix: m4.identity
-        };
-        var coneUniforms = {
-            u_colorMult: [0.5, 0.5, 1, 1],
-            u_matrix: m4.identity()
-        };
-        var sphereTranslation = [ 0, 0, 0];
-        var cubeTranslation = [-40, 0, 0];
-        var coneTranslation = [40, 0, 0];
+        var shapes = [
+            { bufferInfo: sphereBufferInfo, vertexArray: sphereVAO},
+            { bufferInfo: cubeBufferInfo, vertexArray: cubeVAO},
+            { bufferInfo: coneBufferInfo, vertexArray: coneVAO}
+        ];
 
+        var objectsToDraw = [];
+        var objects = [];
+        
+        var baseHue = rand(360);
+        var numObjects = 200;
+        for (var ii = 0; ii < numObjects; ++ii) {
+            var shape = shapes[rand(shapes.length) | 0];
+
+            var object = {
+                uniforms: {
+                    u_colorMult: chroma.hsv(emod(baseHue + rand(120), 360), rand(0.5, 1), rand(0.5, 1)).gl(),
+                    u_matrix: m4.identity()
+                },
+                translation: [rand(-100, 100), rand(-100, 100), rand(-150, -50)],
+                xRotationSpeed: rand(0.8, 1.2),
+                yRotationSpeed: rand(0.8, 1.2), 
+            };
+            objects.push(object);
+            objectsToDraw.push({
+                programInfo: programInfo,
+                bufferInfo: shape.bufferInfo,
+                vertexArray: shape.vertexArray,
+                uniforms: object.uniforms,
+            });
+        }
+        // //uniforms for each obj
+        // var sphereUniforms = {
+        //     u_colorMult: [0.5, 1, 0.5, 1],
+        //     u_matrix: m4.identity()
+        // };
+        // var cubeUniforms = {
+        //     u_colorMult: [1, 0.5, 0.5, 1],
+        //     u_matrix: m4.identity
+        // };
+        // var coneUniforms = {
+        //     u_colorMult: [0.5, 0.5, 1, 1],
+        //     u_matrix: m4.identity()
+        // };
+        // var sphereTranslation = [ 0, 0, 0];
+        // var cubeTranslation = [-40, 0, 0];
+        // var coneTranslation = [40, 0, 0];
+
+        // var objectsToDraw = [
+        //     {
+        //         programInfo: programInfo,
+        //         bufferInfo: sphereBufferInfo,
+        //         vertexArray: sphereVAO,
+        //         uniforms: sphereUniforms
+        //     },
+        //     {
+        //         programInfo: programInfo,
+        //         bufferInfo: cubeBufferInfo,
+        //         vertexArray: cubeVAO,
+        //         uniforms: cubeUniforms
+        //     },
+        //     {
+        //         programInfo: programInfo,
+        //         bufferInfo: coneBufferInfo,
+        //         vertexArray: coneVAO,
+        //         uniforms: coneUniforms
+        //     }
+        // ]
         function computeMatrix(viewProjectionMatrix, translation, xRotation, yRotation) {
             var matrix = m4.translate(viewProjectionMatrix,
                 translation[0],
@@ -154,42 +215,37 @@
 
             gl.useProgram(programInfo.program);
 
-            // Draw the sphere
-            gl.bindVertexArray(sphereVAO);
-            sphereUniforms.u_matrix = computeMatrix(
-                viewProjectionMatrix,
-                sphereTranslation,
-                sphereXRotation,
-                sphereYRotation,
-            );
+            //compute matrices for each obj
+            objects.forEach((object) => {
+                object.uniforms.u_matrix = computeMatrix(
+                    viewProjectionMatrix,
+                    object.translation,
+                    object.xRotationSpeed * time,
+                    object.yRotationSpeed * time
+                );
+            });
 
-            twgl.setUniforms(programInfo, sphereUniforms);
-            twgl.drawBufferInfo(gl, sphereBufferInfo);
+            var lastUsedProgramInfo = null;
+            var lastUsedVertexArray = null;
 
-            //draw cube
-            gl.bindVertexArray(cubeVAO);
-            cubeUniforms.u_matrix = computeMatrix(
-                viewProjectionMatrix,
-                cubeTranslation,
-                cubeXRotation,
-                cubeYRotation,
-            );
+            // Draw the objects
+            objectsToDraw.forEach((object) => {
+                var programInfo = object.programInfo;
+                var vertexArray = object.vertexArray;
 
-            twgl.setUniforms(programInfo, cubeUniforms);
-            twgl.drawBufferInfo(gl, cubeBufferInfo);
+                //setup all the necessary
+                if (programInfo !== lastUsedProgramInfo) {
+                    lastUsedProgramInfo = programInfo;
+                    gl.useProgram(programInfo.program);
+                }
+                if (lastUsedVertexArray !== vertexArray) {
+                    lastUsedVertexArray = vertexArray;
+                    gl.bindVertexArray(vertexArray);
+                }
 
-            //draw Cone
-            gl.bindVertexArray(coneVAO);
-            coneUniforms.u_matrix = computeMatrix(
-                viewProjectionMatrix,
-                coneTranslation,
-                coneXRotation,
-                coneYRotation
-            );
-
-            //set computed uniforms
-            twgl.setUniforms(programInfo, coneUniforms);
-            twgl.drawBufferInfo(gl, coneBufferInfo);
+                twgl.setUniforms(programInfo, object.uniforms);
+                twgl.drawBufferInfo(gl, object.bufferInfo);
+            });
 
             requestAnimationFrame(drawScene);
         }
