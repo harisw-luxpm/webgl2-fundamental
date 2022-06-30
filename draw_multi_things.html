@@ -5,6 +5,17 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+    </style>
 </head>
 <body>
     <canvas id="c"></canvas>
@@ -120,7 +131,7 @@
                     u_colorMult: chroma.hsv(emod(baseHue + rand(120), 360), rand(0.5, 1), rand(0.5, 1)).gl(),
                     u_matrix: m4.identity()
                 },
-                translation: [rand(-100, 100), rand(-100, 100), rand(-150, -50)],
+                translation: [rand(-300, 300), rand(-100, 100), rand(-150, -50)],
                 xRotationSpeed: rand(0.8, 1.2),
                 yRotationSpeed: rand(0.8, 1.2), 
             };
