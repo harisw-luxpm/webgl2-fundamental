@@ -164,22 +164,20 @@ canvas {
             var translationMatrix = m3.translation(translation[0], translation[1]);
             var rotationMatrix = m3.rotation(rotationInRadians);
             var scaleMatrix = m3.scaling(scale[0], scale[1]);
+            var moveOriginMatrix = m3.translation(-50, -75);
 
-            var matrix = m3.identity();
+            var matrix = m3.multiply(translationMatrix, rotationMatrix);
+            matrix = m3.multiply(matrix, scaleMatrix);
+            matrix = m3.multiply(matrix, moveOriginMatrix);
 
-            for (var i=0; i < 5; ++i) {
+            // Set the matrix.
+            gl.uniformMatrix3fv(matrixLocation, false, matrix);
 
-                matrix = m3.multiply(matrix, translationMatrix);
-                matrix = m3.multiply(matrix, rotationMatrix);
-                matrix = m3.multiply(matrix, scaleMatrix);
-
-                gl.uniformMatrix3fv(matrixLocation, false, matrix);
-
-                var primitiveType = gl.TRIANGLES;
-                var offset = 0;
-                var count = 18;
-                gl.drawArrays(primitiveType, offset, count);
-            }
+            // Draw the geometry.
+            var primitiveType = gl.TRIANGLES;
+            var offset = 0;
+            var count = 18;
+            gl.drawArrays(primitiveType, offset, count);
         }
     }
 // Fill the current ARRAY_BUFFER buffer
@@ -218,7 +216,7 @@ function setGeometry(gl) {
 
 
 var m3 = {
-  identity: function identity() {
+  identity: function identity(tx, ty) {
     return [
       1, 0, 0,
       0, 1, 0,
